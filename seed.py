@@ -9,7 +9,7 @@ from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.database import engine, Base, SessionLocal
+from app.database import SessionLocal, run_alembic_upgrade_head
 from app.models import User, Timesheet, ApprovalRecord, Holiday
 from app.schemas import TimesheetCreate
 from app.crud import create_timesheet
@@ -103,7 +103,8 @@ def run() -> None:
     print("开始执行种子数据脚本 ...")
     print("=" * 50)
 
-    Base.metadata.create_all(bind=engine)
+    # 先执行 Alembic 迁移，保证表结构存在于最新版本
+    run_alembic_upgrade_head("head")
     db = SessionLocal()
     try:
         user_map = seed_users(db)

@@ -1,0 +1,28 @@
+# 构建镜像时不拷贝的文件（减小镜像层体积 + 避免覆盖容器内数据）
+.git
+.gitignore
+.github
+
+# 本地数据库和测试产物
+*.db
+*.sqlite
+*.sqlite3
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+.pytest_cache
+.pytest_cache/
+
+# IDE
+.idea
+.vscode
+*.swp
+.DS_Store
+
+# 测试报告 / 日志
+.coverage
+htmlcov
+coverage.xml
+*.log

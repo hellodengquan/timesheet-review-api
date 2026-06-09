@@ -1,0 +1,59 @@
+services:
+  timesheet-api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # 支持多阶段构建时自定义目标（默认 runtime）
+      target: runtime
+      args:
+        BUILDKIT_INLINE_CACHE: "1"
+    image: timesheet-review-api:latest
+    container_name: timesheet-review-api
+    restart: unless-stopped
+
+    # 默认端口：主机 8000 -> 容器 8000
+    ports:
+      - "${HOST_PORT:-8000}:8000"
+
+    environment:
+      # 由 Dockerfile 内 ENV 默认；此处覆盖便于调优
+      PORT: "8000"
+      WORKERS: "${WORKERS:-2}"
+      # 强制数据路径落到 /data（与 VOLUME 声明一致）
+      DB_PATH: "/data/timesheet.db"
+      TZ: "Asia/Shanghai"
+
+    # --- SQLite 持久化卷：保留历史数据 ---
+    # compose 管理卷（推荐），容器重建不会丢失
+    volumes:
+      - timesheet-data:/data
+
+    # --- 健康检查（与 Dockerfile HEALTHCHECK 一致，可被 k8s liveness/readiness 借鉴）---
+    healthcheck:
+      test: ["CMD", "curl", "--fail", "http://127.0.0.1:8000/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+
+    # 资源限制：k8s 上的 requests/limits 的等价配置
+    deploy:
+      resources:
+        limits:
+          cpus: "1.0"
+          memory: "512M"
+        reservations:
+          cpus: "0.25"
+          memory: "256M"
+
+    networks:
+      - timesheet-net
+
+volumes:
+  # 命名卷：SQLite 数据持久化（`docker compose down` 不删除，需 docker volume rm 才删除）
+  timesheet-data:
+    driver: local
+
+networks:
+  timesheet-net:
+    driver: bridge

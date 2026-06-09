@@ -1,13 +1,14 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
-from app.database import engine, Base
+from app.database import run_alembic_upgrade_head
 from app.routers import users, timesheets, approvals, anomalies
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
+    # 服务启动前执行 Alembic 迁移，保证表结构与代码版本一致
+    run_alembic_upgrade_head("head")
     yield
 
 
