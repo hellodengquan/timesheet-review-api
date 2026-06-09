@@ -9,10 +9,10 @@ test_holidays.py
   5. DELETE 不存在 id -> 404
   6. 新增假日后，当日报工自动 anomaly（联动验证，确保 CRUD 与 anomaly 链路打通）
 """
+
 from datetime import date
 
 import pytest
-
 
 HOLIDAY_DATE = date(2030, 10, 1)
 ANOTHER_DATE = date(2030, 10, 2)

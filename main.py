@@ -1,8 +1,9 @@
-from fastapi import FastAPI
 from contextlib import asynccontextmanager
 
+from fastapi import FastAPI
+
 from app.database import run_alembic_upgrade_head
-from app.routers import users, timesheets, approvals, anomalies
+from app.routers import anomalies, approvals, timesheets, users
 
 
 @asynccontextmanager

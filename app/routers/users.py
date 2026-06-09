@@ -1,17 +1,18 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.orm import Session
 from typing import List
 
-from app.database import get_db
-from app.schemas import UserCreate, UserResponse
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+
 from app.crud import (
-    get_user,
-    get_user_by_employee_id,
-    get_user_by_email,
-    get_users,
     create_user,
     get_subordinates,
+    get_user,
+    get_user_by_email,
+    get_user_by_employee_id,
+    get_users,
 )
+from app.database import get_db
+from app.schemas import UserCreate, UserResponse
 
 router = APIRouter(prefix="/users", tags=["users"])
 

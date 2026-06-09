@@ -23,10 +23,10 @@ test_approvals.py
      1. /history/{ts_id} 返回完整的审批时间线
      2. /approver/{id} 按审批人查看审批记录
 """
+
 from datetime import date
 
 import pytest
-
 
 WORKDAY = date(2030, 3, 12)
 
@@ -50,9 +50,7 @@ def _submit_ts(client, emp_id: int, workday=WORKDAY, hours: float = 8, tag: str 
 #  A. 单条审批
 # ============================================================================
 class TestSingleApprovalSuccess:
-    def test_single_approved_updates_status_and_creates_history(
-        self, client, supervisor, employee
-    ):
+    def test_single_approved_updates_status_and_creates_history(self, client, supervisor, employee):
         ts = _submit_ts(client, employee.id)
         resp = client.post(
             "/api/v1/approvals/single",
@@ -189,9 +187,7 @@ class TestBulkApprovalGroups:
         assert body["skipped_count"] == 0 and body["failed_count"] == 0
         assert sorted(body["processed"]) == sorted(ids)
 
-    def test_mixed_processed_and_skipped_already_approved(
-        self, client, supervisor, employee
-    ):
+    def test_mixed_processed_and_skipped_already_approved(self, client, supervisor, employee):
         """3条中1条提前批准 -> processed=2 skipped=1"""
         ids = [_submit_ts(client, employee.id)["id"] for _ in range(3)]
         # 把 ids[1] 提前批准
@@ -213,9 +209,7 @@ class TestBulkApprovalGroups:
         assert ids[1] in body["skipped"]
         assert ids[0] in body["processed"] and ids[2] in body["processed"]
 
-    def test_skipped_wrong_supervisor_and_fake_ids(
-        self, client, supervisor, employee, other_supervisor, employee_b
-    ):
+    def test_skipped_wrong_supervisor_and_fake_ids(self, client, supervisor, employee, other_supervisor, employee_b):
         """
         processed = 员工A的2条（是supervisor的下属）
         skipped   = 员工B的1条（不是supervisor的下属）

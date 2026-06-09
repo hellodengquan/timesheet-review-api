@@ -1,19 +1,18 @@
+from datetime import date
+from typing import List, Optional
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import date
 
-from app.database import get_db
-from app.schemas import TimesheetResponse, HolidayCreate, HolidayResponse, TimesheetListResponse
 from app.crud import (
-    get_anomaly_timesheets,
-    get_timesheets_count,
-    get_holiday,
-    get_holiday_by_date,
-    get_holidays,
     create_holiday,
     delete_holiday,
+    get_anomaly_timesheets,
+    get_holiday_by_date,
+    get_holidays,
 )
+from app.database import get_db
+from app.schemas import HolidayCreate, HolidayResponse, TimesheetListResponse
 
 router = APIRouter(prefix="/anomalies", tags=["anomalies"])
 

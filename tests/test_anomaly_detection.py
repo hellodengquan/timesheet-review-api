@@ -9,6 +9,7 @@ test_anomaly_detection.py
   5. 异常查询接口 /api/v1/anomalies 能正确过滤出带 anomaly 的记录
   6. 工时更新（PUT）后累计超阈值 -> 重新触发 anomaly 检测
 """
+
 from datetime import date
 
 import pytest
@@ -107,8 +108,14 @@ class TestDailyHoursExceed12:
 
     def test_three_records_cumulative_trigger(self, client, employee, workday_date):
         """5 + 5 + 3 = 13，第三条触发"""
-        client.post("/api/v1/timesheets", json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 5, "project_tag": "A"})
-        client.post("/api/v1/timesheets", json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 5, "project_tag": "B"})
+        client.post(
+            "/api/v1/timesheets",
+            json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 5, "project_tag": "A"},
+        )
+        client.post(
+            "/api/v1/timesheets",
+            json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 5, "project_tag": "B"},
+        )
         r3 = client.post(
             "/api/v1/timesheets",
             json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 3, "project_tag": "C"},
@@ -118,7 +125,10 @@ class TestDailyHoursExceed12:
 
     def test_different_employees_not_crossed(self, client, employee, employee_b, workday_date):
         """不同员工的当日累计互不影响"""
-        client.post("/api/v1/timesheets", json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 10, "project_tag": "A"})
+        client.post(
+            "/api/v1/timesheets",
+            json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 10, "project_tag": "A"},
+        )
         r_emp_b = client.post(
             "/api/v1/timesheets",
             json={"employee_id": employee_b.id, "date": workday_date.isoformat(), "hours": 8, "project_tag": "B"},
@@ -188,9 +198,15 @@ class TestAnomalyQueryEndpoint:
     def test_anomaly_filter_by_employee(self, client, employee, employee_b, workday_date):
         """按员工ID过滤 anomaly"""
         # 员工A：超阈值
-        client.post("/api/v1/timesheets", json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 14, "project_tag": "A"})
+        client.post(
+            "/api/v1/timesheets",
+            json={"employee_id": employee.id, "date": workday_date.isoformat(), "hours": 14, "project_tag": "A"},
+        )
         # 员工B：正常
-        client.post("/api/v1/timesheets", json={"employee_id": employee_b.id, "date": workday_date.isoformat(), "hours": 6, "project_tag": "B"})
+        client.post(
+            "/api/v1/timesheets",
+            json={"employee_id": employee_b.id, "date": workday_date.isoformat(), "hours": 6, "project_tag": "B"},
+        )
 
         resp = client.get(f"/api/v1/anomalies?employee_id={employee.id}")
         body = resp.json()

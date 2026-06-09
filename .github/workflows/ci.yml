@@ -1,0 +1,170 @@
+name: Timesheet Review API — CI
+
+on:
+  push:
+    branches: [main, master, develop]
+    paths-ignore:
+      - "**/*.md"
+      - ".gitignore"
+      - ".dockerignore"
+  pull_request:
+    branches: [main, master, develop]
+    types: [opened, synchronize, reopened]
+
+# 同一 PR/分支的重复触发自动取消前一次
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ========================================================
+  #  Job 1 — 代码风格检查 (ruff)
+  #  一旦失败，后续 pytest 与 docker build 都不执行
+  # ========================================================
+  lint:
+    name: "Ruff Lint & Style"
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Setup Python ${{ matrix.python-version }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: "Cache pip dependencies"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+
+      - name: "Install dependencies"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: "Run ruff check"
+        run: |
+          ruff check . --output-format=github
+
+      - name: "Run ruff format (diff only)"
+        run: |
+          ruff format --check --diff .
+
+  # ========================================================
+  #  Job 2 — 单元测试 (pytest)
+  #  依赖 lint 成功；Python 3.12 矩阵
+  # ========================================================
+  test:
+    name: "Pytest Unit Tests"
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.12"]
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Setup Python ${{ matrix.python-version }}"
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: "Cache pip dependencies"
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-${{ matrix.python-version }}-
+
+      - name: "Install dependencies"
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: "Run pytest (全量用例，包括部署资产)"
+        env:
+          DB_PATH: ":memory:"        # 测试期用内存 SQLite，避免冲突
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: |
+          python -m pytest tests/ \
+            -v \
+            --tb=short \
+            --strict-markers \
+            --color=yes
+
+      - name: "Upload pytest artifacts (失败时导出数据库文件样本)"
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pytest-debug-${{ matrix.python-version }}
+          path: |
+            ${{ github.workspace }}/**/*.db
+            ${{ github.workspace }}/timesheet.db
+          if-no-files-found: ignore
+
+  # ========================================================
+  #  Job 3 — 容器镜像构建 (docker build)
+  #  依赖 pytest 成功；使用 buildx 加速
+  # ========================================================
+  docker-build:
+    name: "Docker Image Build"
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: "Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "Set up Docker Buildx"
+        uses: docker/setup-buildx-action@v3
+
+      - name: "Cache Docker layers"
+        uses: actions/cache@v4
+        with:
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-buildx-
+
+      - name: "Build immutable image (不推送)"
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          push: false
+          load: true
+          tags: |
+            timesheet-review-api:ci-${{ github.sha }}
+            timesheet-review-api:latest
+          cache-from: type=local,src=/tmp/.buildx-cache
+          cache-to: type=local,dest=/tmp/.buildx-cache-new,mode=max
+          build-args: |
+            BUILDKIT_INLINE_CACHE=1
+
+      - name: "Temp cache move (avoid cache pollution)"
+        run: |
+          rm -rf /tmp/.buildx-cache
+          mv /tmp/.buildx-cache-new /tmp/.buildx-cache
+
+      - name: "Sanity check: image size <= 250 MB"
+        run: |
+          IMG_SIZE=$(docker image inspect timesheet-review-api:latest --format '{{.Size}}' || echo 0)
+          MB=$(( IMG_SIZE / 1024 / 1024 ))
+          echo "Image size: ${MB} MB"
+          if [ $MB -gt 250 ]; then
+            echo "❌ Image too large (>250 MB); check multi-stage build for leaks."
+            exit 1
+          fi
+          echo "✅ Image size ok."
+
+      - name: "List built images"
+        run: docker images | grep timesheet

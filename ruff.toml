@@ -1,0 +1,57 @@
+# ============================================================
+#  ruff 代码风格检查配置 (timesheet-review-api)
+#  参考：https://docs.astral.sh/ruff/
+# ============================================================
+line-length = 120
+target-version = "py312"
+
+[lint]
+# 默认开启的规则集（Ruff 0.15.x selector）
+# - E: pycodestyle errors
+# - F: Pyflakes (未使用 import / 未定义变量 等)
+# - I: isort 导入排序
+# - N: pep8-naming
+# - UP: pyupgrade
+# - B: flake8-bugbear
+# - SIM: flake8-simplify
+# - TCH: flake8-type-checking
+select = ["E", "F", "I", "N", "UP", "B", "SIM", "TCH"]
+
+# 禁用过于严格 / 与现有代码风格冲突的规则
+ignore = [
+    "UP007",   # 允许 Union[str, int] 与 str | int 混用
+    "UP006",   # 允许 List[str] 与 list[str] 混用
+    "UP035",   # 允许从 typing 导入 (List/Dict/Optional 等)
+    "TCH001",  # 不强制 typing 放到 TYPE_CHECKING 块
+    "B008",    # FastAPI Depends 等场景默认参数为可调用对象
+    "SIM108",  # 三元表达式可读性不强制
+    "SIM102",  # 不强制嵌套 if 合并（复杂条件保留可读性）
+    "N803",    # arg 命名不强制 snake_case（兼容接口字段）
+    "I002",    # 不强制所有文件首行 from __future__ import annotations
+    "E402",    # conftest 等模块允许 import 不在文件开头
+    "F841",    # 允许有意保留的临时变量（测试用例常见）
+    "E501",    # 行长度交给格式化阶段，linter 不阻塞 CI
+]
+
+[lint.per-file-ignores]
+# 测试文件：不强制未使用导入（常用做文档参考）
+"tests/*" = ["F401", "D"]
+# 迁移脚本由 Alembic 自动生成，不做风格约束
+"migrations/versions/*" = ["E", "F", "I", "N", "UP", "B", "SIM", "TCH"]
+# Alembic env.py 由工具生成
+"migrations/env.py" = ["I001"]
+
+# ============================================================
+#  isort 风格配置（I 规则）
+# ============================================================
+[lint.isort]
+known-first-party = ["app", "main", "seed"]
+case-sensitive = true
+
+# ============================================================
+#  格式化配置（ruff format）
+# ============================================================
+[format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"

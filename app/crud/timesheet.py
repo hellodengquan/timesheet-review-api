@@ -1,8 +1,9 @@
-from sqlalchemy.orm import Session
-from typing import Optional, List
 from datetime import date
+from typing import List, Optional
 
-from app.models import Timesheet, Holiday
+from sqlalchemy.orm import Session
+
+from app.models import Holiday, Timesheet
 from app.schemas import TimesheetCreate, TimesheetUpdate
 
 
@@ -57,11 +58,7 @@ def get_timesheets_count(
 
 
 def get_daily_total_hours(db: Session, employee_id: int, target_date: date) -> float:
-    records = (
-        db.query(Timesheet)
-        .filter(Timesheet.employee_id == employee_id, Timesheet.date == target_date)
-        .all()
-    )
+    records = db.query(Timesheet).filter(Timesheet.employee_id == employee_id, Timesheet.date == target_date).all()
     return sum(r.hours for r in records)
 
 
@@ -69,9 +66,7 @@ def is_holiday(db: Session, target_date: date) -> Optional[Holiday]:
     return db.query(Holiday).filter(Holiday.date == target_date).first()
 
 
-def _detect_anomaly(
-    db: Session, employee_id: int, target_date: date, current_hours: float
-) -> List[str]:
+def _detect_anomaly(db: Session, employee_id: int, target_date: date, current_hours: float) -> List[str]:
     tags = []
     daily_total = get_daily_total_hours(db, employee_id, target_date) + current_hours
     if daily_total > 12:
@@ -99,9 +94,7 @@ def create_timesheet(db: Session, timesheet: TimesheetCreate) -> Timesheet:
     return db_timesheet
 
 
-def update_timesheet(
-    db: Session, timesheet_id: int, timesheet_update: TimesheetUpdate
-) -> Optional[Timesheet]:
+def update_timesheet(db: Session, timesheet_id: int, timesheet_update: TimesheetUpdate) -> Optional[Timesheet]:
     db_timesheet = get_timesheet(db, timesheet_id)
     if not db_timesheet:
         return None
@@ -109,9 +102,7 @@ def update_timesheet(
     for key, value in update_data.items():
         setattr(db_timesheet, key, value)
     if "hours" in update_data or "date" in update_data:
-        new_tags = _detect_anomaly(
-            db, db_timesheet.employee_id, db_timesheet.date, 0.0
-        )
+        new_tags = _detect_anomaly(db, db_timesheet.employee_id, db_timesheet.date, 0.0)
         current_tags = [t for t in (db_timesheet.tags or "").split(",") if t]
         for tag in new_tags:
             if tag not in current_tags:
@@ -122,9 +113,7 @@ def update_timesheet(
     return db_timesheet
 
 
-def update_timesheet_status(
-    db: Session, timesheet_id: int, status: str
-) -> Optional[Timesheet]:
+def update_timesheet_status(db: Session, timesheet_id: int, status: str) -> Optional[Timesheet]:
     db_timesheet = get_timesheet(db, timesheet_id)
     if not db_timesheet:
         return None

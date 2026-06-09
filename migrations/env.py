@@ -7,6 +7,7 @@ Alembic environment configuration
   3. SQLite 开启 render_as_batch=True（兼容 ALTER TABLE 场景）
   4. 线上迁移命令：alembic upgrade head
 """
+
 from logging.config import fileConfig
 import os
 
@@ -15,6 +16,7 @@ from alembic import context
 
 # 保证 app 包可被 import（alembic.ini 中 prepend_sys_path=. 也生效，这里双重保险）
 import sys
+
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 # 加载 ORM 模型 & Base
@@ -48,7 +50,7 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
-        render_as_batch=True,   # SQLite 必需
+        render_as_batch=True,  # SQLite 必需
     )
 
     with context.begin_transaction():
@@ -69,7 +71,7 @@ def run_migrations_online() -> None:
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
-            render_as_batch=True,   # SQLite：对 ALTER TABLE 用 CREATE-COPY-DROP 模式兼容
+            render_as_batch=True,  # SQLite：对 ALTER TABLE 用 CREATE-COPY-DROP 模式兼容
         )
 
         with context.begin_transaction():

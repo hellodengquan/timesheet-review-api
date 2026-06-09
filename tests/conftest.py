@@ -5,6 +5,7 @@ pytest 共享配置 & fixture
 - 覆盖 lifespan 中的 alembic 迁移：在测试中改用 Base.metadata.create_all
 - 提供：client, db_session, 预设用户/主管/假日 fixture
 """
+
 from datetime import date, timedelta
 
 import pytest
@@ -14,9 +15,8 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db, run_alembic_upgrade_head
-from app.models import User, Holiday
+from app.models import Holiday, User
 from main import app
-
 
 SQLALCHEMY_TEST_DATABASE_URL = "sqlite:///:memory:"
 
@@ -51,9 +51,11 @@ app.dependency_overrides[get_db] = override_get_db
 # 关键：通过 mock monkey-patch，让 main.py lifespan 里的
 # run_alembic_upgrade_head 调用在测试期间改为上面的实现
 import app.database as _db_module
+
 _db_module.run_alembic_upgrade_head = _override_run_alembic_upgrade_head
 # 同时 main.py 已经 import 了这个符号，也需要替换 main 的本地引用
 import main as _main_module
+
 _main_module.run_alembic_upgrade_head = _override_run_alembic_upgrade_head
 
 

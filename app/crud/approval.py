@@ -1,6 +1,7 @@
-from sqlalchemy.orm import Session
-from typing import Optional, List
 from datetime import date
+from typing import List, Optional
+
+from sqlalchemy.orm import Session
 
 from app.models import ApprovalRecord, Holiday
 from app.schemas import ApprovalCreate, HolidayCreate
@@ -10,9 +11,7 @@ def get_approval(db: Session, approval_id: int) -> Optional[ApprovalRecord]:
     return db.query(ApprovalRecord).filter(ApprovalRecord.id == approval_id).first()
 
 
-def get_approvals_by_timesheet(
-    db: Session, timesheet_id: int
-) -> List[ApprovalRecord]:
+def get_approvals_by_timesheet(db: Session, timesheet_id: int) -> List[ApprovalRecord]:
     return (
         db.query(ApprovalRecord)
         .filter(ApprovalRecord.timesheet_id == timesheet_id)
@@ -21,9 +20,7 @@ def get_approvals_by_timesheet(
     )
 
 
-def get_approvals_by_approver(
-    db: Session, approver_id: int, skip: int = 0, limit: int = 100
-) -> List[ApprovalRecord]:
+def get_approvals_by_approver(db: Session, approver_id: int, skip: int = 0, limit: int = 100) -> List[ApprovalRecord]:
     return (
         db.query(ApprovalRecord)
         .filter(ApprovalRecord.approver_id == approver_id)

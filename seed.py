@@ -4,15 +4,16 @@
 运行方式:
     python seed.py
 """
+
 import sys
 from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
 
-from app.database import SessionLocal, run_alembic_upgrade_head
-from app.models import User, Timesheet, ApprovalRecord, Holiday
-from app.schemas import TimesheetCreate
 from app.crud import create_timesheet
+from app.database import SessionLocal, run_alembic_upgrade_head
+from app.models import Holiday, Timesheet, User
+from app.schemas import TimesheetCreate
 
 
 def seed_users(db: Session) -> dict:
@@ -86,8 +87,20 @@ def seed_timesheets(db: Session, user_map: dict) -> None:
     data = [
         {"employee_id": emp1, "date": today, "hours": 8, "project_tag": "PROJ-A", "description": "需求评审"},
         {"employee_id": emp1, "date": today, "hours": 5, "project_tag": "PROJ-B", "description": "开发任务"},
-        {"employee_id": emp2, "date": today - timedelta(days=1), "hours": 9, "project_tag": "PROJ-A", "description": "代码评审"},
-        {"employee_id": emp2, "date": today - timedelta(days=2), "hours": 7, "project_tag": "PROJ-C", "description": "测试任务"},
+        {
+            "employee_id": emp2,
+            "date": today - timedelta(days=1),
+            "hours": 9,
+            "project_tag": "PROJ-A",
+            "description": "代码评审",
+        },
+        {
+            "employee_id": emp2,
+            "date": today - timedelta(days=2),
+            "hours": 7,
+            "project_tag": "PROJ-C",
+            "description": "测试任务",
+        },
     ]
     inserted = 0
     for d in data:

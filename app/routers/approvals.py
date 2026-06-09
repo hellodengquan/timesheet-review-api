@@ -1,22 +1,22 @@
+from typing import List
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from datetime import date
 
+from app.crud import (
+    create_approval,
+    get_approvals_by_approver,
+    get_approvals_by_timesheet,
+    get_timesheet,
+    get_user,
+    update_timesheet_status,
+)
 from app.database import get_db
 from app.schemas import (
     ApprovalCreate,
     ApprovalResponse,
     BulkApprovalRequest,
     TimesheetResponse,
-)
-from app.crud import (
-    get_timesheet,
-    update_timesheet_status,
-    get_approvals_by_timesheet,
-    get_approvals_by_approver,
-    create_approval,
-    get_user,
 )
 
 router = APIRouter(prefix="/approvals", tags=["approvals"])
@@ -43,9 +43,7 @@ def _validate_approver(db: Session, approver_id: int, timesheet_id: int) -> None
     if timesheet:
         employee = get_user(db, timesheet.employee_id)
         if employee and employee.supervisor_id != approver_id and approver.role != "admin":
-            raise HTTPException(
-                status_code=403, detail="Approver is not the employee's supervisor"
-            )
+            raise HTTPException(status_code=403, detail="Approver is not the employee's supervisor")
 
 
 @router.post("/single", response_model=TimesheetResponse)
@@ -55,9 +53,7 @@ def approve_single(approval: ApprovalCreate, db: Session = Depends(get_db)):
     if not timesheet:
         raise HTTPException(status_code=404, detail="Timesheet not found")
     if timesheet.status in {"approved", "rejected"}:
-        raise HTTPException(
-            status_code=400, detail=f"Timesheet already {timesheet.status}"
-        )
+        raise HTTPException(status_code=400, detail=f"Timesheet already {timesheet.status}")
     _validate_approver(db, approval.approver_id, approval.timesheet_id)
 
     new_status = VALID_STATUSES[approval.action]

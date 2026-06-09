@@ -29,6 +29,7 @@ test_deploy_assets.py
 注意：此文件**不依赖**测试 fixture 里的内存数据库，它会在临时目录操作
       真实 SQLite 文件（通过 DB_PATH 环境变量）。
 """
+
 import os
 import re
 import subprocess
@@ -37,7 +38,6 @@ import tempfile
 from pathlib import Path
 
 import pytest
-
 
 # 仓库根目录（conftest.py 在 tests/ 下，上一级）
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -108,12 +108,7 @@ class TestAlembicCLI:
             assert r.returncode == 0, f"upgrade head failed: {r.stderr}"
 
             conn = sqlite3.connect(db_file)
-            tables = {
-                row[0]
-                for row in conn.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table';"
-                )
-            }
+            tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table';")}
             conn.close()
 
             expected = {
@@ -142,12 +137,7 @@ class TestAlembicCLI:
             assert r.returncode == 0, f"downgrade base failed: {r.stderr}"
 
             conn = sqlite3.connect(db_file)
-            tables = {
-                row[0]
-                for row in conn.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table';"
-                )
-            }
+            tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table';")}
             conn.close()
             business = {"users", "timesheets", "approval_records", "holidays"}
             assert business.isdisjoint(tables), f"还有残留表 {business & tables}"
@@ -160,13 +150,15 @@ class TestAlembicScriptContent:
         assert len(files) >= 1, "migrations/versions/ 下没有 revision 脚本"
 
     def test_initial_revision_contains_4_tables_ddl(self):
+        import re
+
         versions_dir = REPO_ROOT / "migrations" / "versions"
         files = list(versions_dir.glob("*.py"))
         combined = "\n".join(f.read_text() for f in files)
+        # 去掉所有空白/引号差异：不限制 create_table 与表名的格式
         for tbl in ("users", "timesheets", "approval_records", "holidays"):
-            assert f"'{tbl}'" in combined or f'op.create_table(\'{tbl}\'' in combined, (
-                f"迁移脚本中缺少表 {tbl} 的 DDL"
-            )
+            pattern = re.compile(r"create_table\s*\(\s*[\"']" + re.escape(tbl) + r"[\"']")
+            assert pattern.search(combined), f"迁移脚本中缺少表 {tbl} 的 create_table 调用"
 
     def test_env_py_imports_app_metadata(self):
         """migrations/env.py 必须从 app.database 加载 Base metadata"""
